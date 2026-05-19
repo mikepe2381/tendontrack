@@ -8,14 +8,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-function getRedirectURL(next?: string) {
-  const origin =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : (process.env.NEXT_PUBLIC_SITE_URL ?? "");
-  const url = new URL("/auth/callback", origin);
+function getOrigin() {
+  return typeof window !== "undefined"
+    ? window.location.origin
+    : (process.env.NEXT_PUBLIC_SITE_URL ?? "");
+}
+
+// OAuth (Google) lands on /auth/callback?code=... and we exchange the code.
+function getOAuthCallbackURL(next?: string) {
+  const url = new URL("/auth/callback", getOrigin());
   if (next) url.searchParams.set("next", next);
   return url.toString();
+}
+
+// Magic-link emails use the token_hash flow via /auth/confirm. The value
+// passed here becomes {{ .RedirectTo }} in the Supabase email template,
+// which we forward as the post-verify `next` destination.
+function getMagicLinkDestination(next?: string) {
+  const safeNext = next && next.startsWith("/") ? next : "/dashboard";
+  return new URL(safeNext, getOrigin()).toString();
 }
 
 export function LoginForm({
@@ -42,7 +53,7 @@ export function LoginForm({
     startTransition(async () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: getRedirectURL(next) },
+        options: { redirectTo: getOAuthCallbackURL(next) },
       });
       if (error) setErrorMsg(error.message);
     });
@@ -56,7 +67,7 @@ export function LoginForm({
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: getRedirectURL(next),
+          emailRedirectTo: getMagicLinkDestination(next),
           shouldCreateUser: true,
         },
       });

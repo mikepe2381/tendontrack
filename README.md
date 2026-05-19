@@ -53,9 +53,24 @@ In the Supabase dashboard, open **SQL Editor → New query**, paste the contents
 In the Supabase dashboard, **Authentication → URL Configuration**:
 
 - **Site URL:** `http://localhost:3000` (add your production URL alongside it when you deploy)
-- **Redirect URLs:** add `http://localhost:3000/auth/callback` (and the production equivalent)
+- **Redirect URLs:** add both
+  - `http://localhost:3000/auth/callback` (Google OAuth)
+  - `http://localhost:3000/auth/confirm` (magic-link confirmation)
+  - and the production equivalents when you deploy.
 
-**Email magic link** is enabled by default — no extra setup needed for local dev.
+**Email magic link** uses the SSR-recommended `token_hash` / `verifyOtp` flow, which requires a one-time email-template change. In the Supabase dashboard go to **Authentication → Email Templates → Magic Link** and replace the body's `{{ .ConfirmationURL }}` link with:
+
+```html
+<h2>Sign in to TendonTrack</h2>
+<p>Click the link below to sign in:</p>
+<p>
+  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink&next={{ .RedirectTo }}">
+    Sign in to TendonTrack
+  </a>
+</p>
+```
+
+Why: the default template uses Supabase's PKCE redirect (`?code=...`), which depends on a browser cookie that does not survive being emailed and clicked later (different browser, different device, mobile in-app browsers, strict cookie blockers). The `token_hash` flow uses `verifyOtp` and works regardless of where the link is clicked.
 
 **Google OAuth:**
 
@@ -88,7 +103,8 @@ app/
   page.tsx            landing (redirects to /dashboard when signed in)
   about/              public about page
   login/              email + Google sign-in
-  auth/callback/      OAuth + magic-link exchange
+  auth/callback/      OAuth code exchange (Google)
+  auth/confirm/       magic-link token_hash verification
   auth/signout/       POST handler that signs out
   dashboard/          authenticated stub
 components/
@@ -102,7 +118,7 @@ lib/
     client.ts         browser client
     server.ts         server-component / route-handler client
     middleware.ts     middleware session refresher
-middleware.ts         protects all routes except /, /login, /auth/callback, /about
+middleware.ts         protects all routes except /, /login, /auth/callback, /auth/confirm, /about
 supabase/migrations/  SQL to run manually in the Supabase SQL editor
 ```
 
