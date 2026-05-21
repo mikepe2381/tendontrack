@@ -30,6 +30,9 @@ export async function Header() {
               <Button asChild variant="ghost" size="sm">
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/settings">Settings</Link>
+              </Button>
               <form action="/auth/signout" method="post">
                 <Button variant="ghost" size="sm" type="submit">
                   Sign out

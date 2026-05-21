@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Heart, Star } from "lucide-react";
+import { Check, Heart, Star } from "lucide-react";
 
+import type { SupplementFormItem } from "@/app/log/page";
 import { upsertDailyLog } from "@/app/log/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import {
   type DailyLogFormValues,
   type MobilityStatus,
 } from "@/lib/schemas/daily-log";
+import { SUPPLEMENT_TIMING_LABELS } from "@/lib/schemas/supplement";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -26,6 +28,7 @@ type Props = {
   injuryDate: string;
   todayInTz: string;
   isEditing: boolean;
+  supplements: SupplementFormItem[];
 };
 
 // Translate the empty HTML input value into undefined for optional fields,
@@ -46,6 +49,7 @@ export function DailyLogForm({
   injuryDate,
   todayInTz,
   isEditing,
+  supplements,
 }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -197,6 +201,18 @@ export function DailyLogForm({
           </p>
         ) : null}
       </section>
+
+      <Controller
+        control={form.control}
+        name="supplements"
+        render={({ field }) => (
+          <SupplementsSection
+            supplements={supplements}
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
+      />
 
       <Controller
         control={form.control}
@@ -394,6 +410,108 @@ function RatingField({ label, icon, value, onChange }: RatingFieldProps) {
           );
         })}
       </div>
+    </section>
+  );
+}
+
+type SupplementCheckValue = { supplement_id: string; taken: boolean };
+
+type SupplementsSectionProps = {
+  supplements: SupplementFormItem[];
+  value: SupplementCheckValue[];
+  onChange: (next: SupplementCheckValue[]) => void;
+};
+
+function SupplementsSection({
+  supplements,
+  value,
+  onChange,
+}: SupplementsSectionProps) {
+  const takenMap = new Map(value.map((v) => [v.supplement_id, v.taken]));
+
+  function toggle(id: string) {
+    const current = takenMap.get(id) ?? false;
+    const next = supplements.map((s) => ({
+      supplement_id: s.id,
+      taken: s.id === id ? !current : (takenMap.get(s.id) ?? false),
+    }));
+    onChange(next);
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <Label>Supplements</Label>
+        <Link
+          href="/settings/supplements"
+          className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+        >
+          Manage
+        </Link>
+      </div>
+
+      {supplements.length === 0 ? (
+        <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+          No supplements set up yet.{" "}
+          <Link
+            href="/settings/supplements"
+            className="underline-offset-4 hover:underline"
+          >
+            Add your stack
+          </Link>{" "}
+          and it&apos;ll show up here.
+        </div>
+      ) : (
+        <ul className="divide-y divide-border rounded-md border border-border">
+          {supplements.map((s) => {
+            const taken = takenMap.get(s.id) ?? false;
+            return (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={taken}
+                  onClick={() => toggle(s.id)}
+                  className={cn(
+                    "flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-accent/40",
+                    s.inactiveHistorical && "opacity-70",
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded border transition-colors",
+                      taken
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-input bg-background",
+                    )}
+                  >
+                    {taken ? <Check className="h-4 w-4" /> : null}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-2">
+                    <span className="font-medium">{s.name}</span>
+                    {s.dose ? (
+                      <span className="text-sm text-muted-foreground">
+                        {s.dose}
+                      </span>
+                    ) : null}
+                    {s.timing ? (
+                      <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+                        {SUPPLEMENT_TIMING_LABELS[s.timing]}
+                      </span>
+                    ) : null}
+                    {s.inactiveHistorical ? (
+                      <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                        Inactive — historical
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }

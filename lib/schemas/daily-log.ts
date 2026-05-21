@@ -36,6 +36,13 @@ const isoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format")
   .refine((s) => !Number.isNaN(Date.parse(s)), "Enter a valid date");
 
+export const supplementCheckSchema = z.object({
+  supplement_id: z.string().uuid(),
+  taken: z.boolean(),
+});
+
+export type SupplementCheck = z.infer<typeof supplementCheckSchema>;
+
 // Schema is kept input==output so react-hook-form's TFieldValues stays in
 // sync with what the resolver emits. The form normalizes HTML strings to
 // numbers via setValueAs on register(), and Controller-driven inputs (sliders,
@@ -64,6 +71,7 @@ export const dailyLogFormSchema = z.object({
   mobility_status: z.enum(MOBILITY_STATUSES).optional(),
   notes: z.string().max(2000, "Notes can't exceed 2000 characters").optional(),
   flagged_for_followup: z.boolean(),
+  supplements: z.array(supplementCheckSchema).max(200),
 });
 
 export type DailyLogFormValues = z.infer<typeof dailyLogFormSchema>;

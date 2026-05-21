@@ -16,6 +16,13 @@ type LogRow = {
   flagged_for_followup: boolean;
 };
 
+type SupplementLogRow = {
+  log_date: string;
+  taken: boolean;
+};
+
+type SupplementStat = { taken: number; total: number };
+
 function formatDate(iso: string): string {
   // Avoid Date() which would shift by timezone on YYYY-MM-DD parse.
   const [y, m, d] = iso.split("-");
@@ -52,6 +59,27 @@ export default async function LogHistoryPage({
 
   const { data, error } = await query;
   const logs: LogRow[] = error ? [] : ((data ?? []) as LogRow[]);
+
+  // Pull supplement_logs for the dates shown so we can render
+  // "X of Y supplements taken" without an N+1.
+  const supplementStats = new Map<string, SupplementStat>();
+  if (logs.length > 0) {
+    const dates = logs.map((l) => l.log_date);
+    const { data: suppData } = await supabase
+      .from("supplement_logs")
+      .select("log_date, taken")
+      .eq("user_id", user.id)
+      .in("log_date", dates);
+    for (const row of (suppData ?? []) as SupplementLogRow[]) {
+      const existing = supplementStats.get(row.log_date) ?? {
+        taken: 0,
+        total: 0,
+      };
+      existing.total += 1;
+      if (row.taken) existing.taken += 1;
+      supplementStats.set(row.log_date, existing);
+    }
+  }
 
   return (
     <div className="container max-w-2xl space-y-6 py-8">
@@ -99,36 +127,46 @@ export default async function LogHistoryPage({
         </div>
       ) : (
         <ul className="divide-y divide-border rounded-md border border-border">
-          {logs.map((log) => (
-            <li key={log.log_date}>
-              <Link
-                href={`/log?date=${log.log_date}`}
-                className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-accent/40"
-              >
-                <div className="space-y-1">
-                  <p className="font-medium">{formatDate(log.log_date)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {log.mobility_status
-                      ? MOBILITY_SHORT_LABELS[log.mobility_status]
-                      : "Mobility not set"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Metric label="Pain" value={log.pain_level} />
-                  <Metric label="Swell" value={log.swelling_level} />
-                  {log.flagged_for_followup ? (
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary",
-                      )}
-                    >
-                      Flagged
-                    </span>
-                  ) : null}
-                </div>
-              </Link>
-            </li>
-          ))}
+          {logs.map((log) => {
+            const stat = supplementStats.get(log.log_date);
+            return (
+              <li key={log.log_date}>
+                <Link
+                  href={`/log?date=${log.log_date}`}
+                  className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-accent/40"
+                >
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-medium">{formatDate(log.log_date)}</p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                      <span>
+                        {log.mobility_status
+                          ? MOBILITY_SHORT_LABELS[log.mobility_status]
+                          : "Mobility not set"}
+                      </span>
+                      {stat ? (
+                        <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5">
+                          {stat.taken} of {stat.total} supplements
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Metric label="Pain" value={log.pain_level} />
+                    <Metric label="Swell" value={log.swelling_level} />
+                    {log.flagged_for_followup ? (
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary",
+                        )}
+                      >
+                        Flagged
+                      </span>
+                    ) : null}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

@@ -8,6 +8,9 @@ import {
   type DailyLogFormValues,
   type MobilityStatus,
 } from "@/lib/schemas/daily-log";
+import type {
+  SupplementTiming,
+} from "@/lib/schemas/supplement";
 
 type ExistingLog = {
   log_date: string;
@@ -19,6 +22,30 @@ type ExistingLog = {
   mobility_status: MobilityStatus | null;
   notes: string | null;
   flagged_for_followup: boolean;
+};
+
+type SupplementRow = {
+  id: string;
+  name: string;
+  dose: string | null;
+  timing: SupplementTiming | null;
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
+type SupplementLogRow = {
+  supplement_id: string;
+  taken: boolean;
+};
+
+export type SupplementFormItem = {
+  id: string;
+  name: string;
+  dose: string | null;
+  timing: SupplementTiming | null;
+  active: boolean;
+  inactiveHistorical: boolean;
 };
 
 export default async function LogPage({
@@ -49,14 +76,48 @@ export default async function LogPage({
     logDate = rawDate;
   }
 
-  const { data: existing } = await supabase
-    .from("daily_logs")
-    .select(
-      "log_date, pain_level, swelling_level, sleep_hours, sleep_quality, mood, mobility_status, notes, flagged_for_followup",
-    )
-    .eq("user_id", user.id)
-    .eq("log_date", logDate)
-    .maybeSingle<ExistingLog>();
+  const [{ data: existing }, { data: supplements }, { data: supplementLogs }] =
+    await Promise.all([
+      supabase
+        .from("daily_logs")
+        .select(
+          "log_date, pain_level, swelling_level, sleep_hours, sleep_quality, mood, mobility_status, notes, flagged_for_followup",
+        )
+        .eq("user_id", user.id)
+        .eq("log_date", logDate)
+        .maybeSingle<ExistingLog>(),
+      supabase
+        .from("supplements")
+        .select("id, name, dose, timing, active, sort_order, created_at")
+        .eq("user_id", user.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("supplement_logs")
+        .select("supplement_id, taken")
+        .eq("user_id", user.id)
+        .eq("log_date", logDate),
+    ]);
+
+  const supplementList: SupplementRow[] = (supplements ?? []) as SupplementRow[];
+  const supplementLogList: SupplementLogRow[] =
+    (supplementLogs ?? []) as SupplementLogRow[];
+  const takenByIdMap = new Map(
+    supplementLogList.map((r) => [r.supplement_id, r.taken]),
+  );
+
+  // Show active supplements plus any inactive ones that have a log entry for
+  // this date — so historical context is preserved when editing past logs.
+  const visibleSupplements: SupplementFormItem[] = supplementList
+    .filter((s) => s.active || takenByIdMap.has(s.id))
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      dose: s.dose,
+      timing: s.timing,
+      active: s.active,
+      inactiveHistorical: !s.active && takenByIdMap.has(s.id),
+    }));
 
   const defaultValues: DailyLogFormValues = {
     log_date: logDate,
@@ -71,6 +132,10 @@ export default async function LogPage({
     mobility_status: existing?.mobility_status ?? undefined,
     notes: existing?.notes ?? undefined,
     flagged_for_followup: existing?.flagged_for_followup ?? false,
+    supplements: visibleSupplements.map((s) => ({
+      supplement_id: s.id,
+      taken: takenByIdMap.get(s.id) ?? false,
+    })),
   };
 
   const isEditing = Boolean(existing);
@@ -94,6 +159,7 @@ export default async function LogPage({
         injuryDate={profile.injury_date}
         todayInTz={today}
         isEditing={isEditing}
+        supplements={visibleSupplements}
       />
     </div>
   );
