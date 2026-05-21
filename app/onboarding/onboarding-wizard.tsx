@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { type MouseEvent, useMemo, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -50,7 +50,11 @@ export function OnboardingWizard() {
 
   const treatmentType = form.watch("treatment_type");
 
-  async function goNext() {
+  async function goNext(e?: MouseEvent<HTMLButtonElement>) {
+    // Belt-and-suspenders: if React reconciles this button into the same slot
+    // as the Finish submit button mid-render, preventDefault keeps the click's
+    // default action from submitting the form.
+    e?.preventDefault();
     let fields: (keyof ProfileFormValues)[] = [];
     if (step === 1) fields = ["treatment_type"];
     if (step === 2) {
@@ -68,6 +72,7 @@ export function OnboardingWizard() {
   }
 
   function onSubmit(values: ProfileFormValues) {
+    if (step !== 3) return;
     setServerError(null);
     startTransition(async () => {
       const result = await completeOnboarding(values);
@@ -246,11 +251,16 @@ export function OnboardingWizard() {
           Back
         </Button>
         {step < 3 ? (
-          <Button type="button" onClick={goNext} disabled={pending}>
+          <Button
+            key="next"
+            type="button"
+            onClick={goNext}
+            disabled={pending}
+          >
             Next
           </Button>
         ) : (
-          <Button type="submit" disabled={pending}>
+          <Button key="finish" type="submit" disabled={pending}>
             {pending ? "Saving…" : "Finish"}
           </Button>
         )}
