@@ -34,7 +34,7 @@ export async function Header() {
                 <Link href="/timeline">Timeline</Link>
               </Button>
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-                <Link href="/reference/recovery">Reference</Link>
+                <Link href="/reference">Reference</Link>
               </Button>
               <Button asChild variant="ghost" size="sm">
                 <Link href="/settings">Settings</Link>

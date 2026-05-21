@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ClinicalDisclaimer } from "@/components/clinical-disclaimer";
 import { EvidenceBadge } from "@/components/evidence-badge";
 import { requireOnboardedProfile } from "@/lib/auth/gates";
@@ -39,7 +41,12 @@ export default async function RecoveryReferencePage() {
   return (
     <div className="container max-w-3xl space-y-6 py-8">
       <header className="space-y-1">
-        <p className="text-sm text-muted-foreground">Reference</p>
+        <Link
+          href="/reference"
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← Reference
+        </Link>
         <h1 className="text-3xl font-semibold tracking-tight">
           Recovery roadmap
         </h1>
