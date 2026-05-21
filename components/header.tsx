@@ -31,6 +31,12 @@ export async function Header() {
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
               <Button asChild variant="ghost" size="sm">
+                <Link href="/timeline">Timeline</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <Link href="/reference/recovery">Reference</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
                 <Link href="/settings">Settings</Link>
               </Button>
               <form action="/auth/signout" method="post">

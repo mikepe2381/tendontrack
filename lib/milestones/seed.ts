@@ -5,6 +5,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getMilestoneTemplates } from "@/lib/clinical-content";
 import type { TreatmentType } from "@/lib/schemas/profile";
 
+// Idempotent re-seed. Safe to run any number of times for the same user.
+//
+// The payload deliberately contains ONLY user_id, milestone_key, and the
+// expected_week_{min,max} columns. Supabase upsert maps to
+// `INSERT ... ON CONFLICT DO UPDATE SET col=EXCLUDED.col` for every column in
+// the payload — so columns we omit here (achieved_date, notes) are left
+// untouched on existing rows. That lets us:
+//   - insert new milestones when the clinical library grows
+//   - update expected_week_min/max if the library tightens a range
+//   - never clobber a milestone the user has already marked achieved or annotated
 export async function seedMilestonesForUser(
   supabase: SupabaseClient,
   userId: string,
@@ -20,14 +30,9 @@ export async function seedMilestonesForUser(
     expected_week_max: t.expected_week_max,
   }));
 
-  // Idempotent on (user_id, milestone_key) so re-seeding (e.g. if the user
-  // re-runs onboarding after editing their treatment type) is safe.
   const { error } = await supabase
     .from("milestones")
-    .upsert(rows, {
-      onConflict: "user_id,milestone_key",
-      ignoreDuplicates: true,
-    });
+    .upsert(rows, { onConflict: "user_id,milestone_key" });
 
   if (error) throw error;
 }

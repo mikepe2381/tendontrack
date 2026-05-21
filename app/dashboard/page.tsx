@@ -86,8 +86,35 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      <section className="grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/timeline"
+          className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/40"
+        >
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            Recovery
+          </p>
+          <p className="mt-1 text-lg font-medium">Timeline</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            See what&apos;s typical around week {week}.
+          </p>
+        </Link>
+        <Link
+          href="/reference/supplements"
+          className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/40"
+        >
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            Reference
+          </p>
+          <p className="mt-1 text-lg font-medium">Supplement evidence</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            What the research actually says.
+          </p>
+        </Link>
+      </section>
+
       <section className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-        Timeline and appointments land in upcoming milestones.
+        Appointments and notes land in upcoming milestones.
       </section>
     </div>
   );
