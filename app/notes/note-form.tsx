@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import {
   createNote,
@@ -60,8 +61,10 @@ export function NoteForm({ mode, noteId, defaultValues }: Props) {
           : await updateNote(noteId ?? "", values);
       if (!result.ok) {
         setServerError(result.error);
+        toast.error(result.error);
         return;
       }
+      toast.success(mode === "create" ? "Note created" : "Note saved");
       const target =
         mode === "create" && result.id ? `/notes/${result.id}` : "/notes";
       router.push(target);
@@ -74,7 +77,14 @@ export function NoteForm({ mode, noteId, defaultValues }: Props) {
       return;
     }
     startDeleteTransition(async () => {
-      await deleteNote(noteId);
+      const result = await deleteNote(noteId);
+      if (!result.ok) {
+        setServerError(result.error);
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Note deleted");
+      router.push("/notes");
     });
   }
 

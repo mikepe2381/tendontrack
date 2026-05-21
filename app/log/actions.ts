@@ -1,6 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { requireOnboardedProfile } from "@/lib/auth/gates";
@@ -74,5 +73,5 @@ export async function upsertDailyLog(raw: unknown): Promise<DailyLogResult> {
 
   revalidatePath("/dashboard");
   revalidatePath("/log/history");
-  redirect("/dashboard");
+  return { ok: true };
 }

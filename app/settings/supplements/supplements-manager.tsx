@@ -21,6 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   createSupplement,
@@ -92,11 +93,13 @@ export function SupplementsManager({ initialSupplements }: Props) {
   function handleCreated(row: SupplementRow) {
     setSupplements((prev) => [...prev, row]);
     setAdding(false);
+    toast.success("Supplement added");
   }
 
   function handleUpdated(row: SupplementRow) {
     setSupplements((prev) => prev.map((s) => (s.id === row.id ? row : s)));
     setEditingId(null);
+    toast.success("Supplement saved");
   }
 
   function handleActiveToggle(id: string, active: boolean) {
@@ -110,7 +113,10 @@ export function SupplementsManager({ initialSupplements }: Props) {
       if (!result.ok) {
         setSupplements(previous);
         setTopError(`Couldn't update: ${result.error}`);
+        toast.error(result.error);
+        return;
       }
+      toast.success(active ? "Marked active" : "Marked inactive");
     });
   }
 
@@ -129,7 +135,10 @@ export function SupplementsManager({ initialSupplements }: Props) {
       if (!result.ok) {
         setSupplements(previous);
         setTopError(`Couldn't delete: ${result.error}`);
+        toast.error(result.error);
+        return;
       }
+      toast.success("Supplement deleted");
     });
   }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Check, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { EvidenceBadge } from "@/components/evidence-badge";
@@ -257,8 +258,13 @@ function MilestoneSheet({
     setError(null);
     startTransition(async () => {
       const res = await markMilestoneAchieved(milestone.key);
-      if (!res.ok) setError(res.error);
-      else onClose();
+      if (!res.ok) {
+        setError(res.error);
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Milestone marked achieved");
+      onClose();
     });
   }
 
@@ -266,8 +272,13 @@ function MilestoneSheet({
     setError(null);
     startTransition(async () => {
       const res = await unmarkMilestoneAchieved(milestone.key);
-      if (!res.ok) setError(res.error);
-      else onClose();
+      if (!res.ok) {
+        setError(res.error);
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Milestone unmarked");
+      onClose();
     });
   }
 

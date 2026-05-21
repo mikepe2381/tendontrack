@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Heart, Star } from "lucide-react";
+import { toast } from "sonner";
 
 import type { SupplementFormItem } from "@/app/log/page";
 import { upsertDailyLog } from "@/app/log/actions";
@@ -51,6 +53,7 @@ export function DailyLogForm({
   isEditing,
   supplements,
 }: Props) {
+  const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -64,7 +67,13 @@ export function DailyLogForm({
     setServerError(null);
     startTransition(async () => {
       const result = await upsertDailyLog(values);
-      if (result && !result.ok) setServerError(result.error);
+      if (!result.ok) {
+        setServerError(result.error);
+        toast.error(result.error);
+        return;
+      }
+      toast.success(isEditing ? "Log updated" : "Log saved");
+      router.push("/dashboard");
     });
   }
 

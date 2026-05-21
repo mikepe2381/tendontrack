@@ -76,3 +76,49 @@ export const profileFormSchema = z
   });
 
 export type ProfileFormValues = z.infer<typeof profileFormSchema>;
+
+// Settings page reuses every onboarding field and adds display_name. Same
+// validation rules so the two surfaces stay in sync.
+export const profileSettingsSchema = z
+  .object({
+    display_name: z
+      .string()
+      .max(80, "Display name can't exceed 80 characters")
+      .optional()
+      .or(z.literal("")),
+    treatment_type: z.enum(TREATMENT_TYPES, {
+      required_error: "Choose a treatment type",
+    }),
+    injury_date: pastOrTodayDate,
+    surgery_date: pastOrTodayDate.optional().or(z.literal("")),
+    affected_side: z.enum(AFFECTED_SIDES, {
+      required_error: "Choose an affected side",
+    }),
+    timezone: z.string().min(1).default("UTC"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.treatment_type === "surgical" && !data.surgery_date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["surgery_date"],
+        message: "Surgery date is required for surgical treatment",
+      });
+    }
+    if (data.surgery_date && data.injury_date) {
+      const surgery = Date.parse(data.surgery_date);
+      const injury = Date.parse(data.injury_date);
+      if (
+        Number.isFinite(surgery) &&
+        Number.isFinite(injury) &&
+        surgery < injury
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["surgery_date"],
+          message: "Surgery date must be on or after the injury date",
+        });
+      }
+    }
+  });
+
+export type ProfileSettingsValues = z.infer<typeof profileSettingsSchema>;

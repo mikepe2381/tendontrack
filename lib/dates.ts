@@ -24,9 +24,13 @@ export function daysBetween(startIso: string, endIso: string): number {
   return Math.floor(ms / 86_400_000);
 }
 
+// Standard medical convention: day 0–6 = Week 1, day 7–13 = Week 2, …
+// We clamp to a minimum of 1 so that a same-day anchor still reads "Week 1"
+// (and so the UI never has to render "Week 0" or negative weeks).
 export function weeksSince(anchorIso: string, timeZone: string): number {
   const today = todayInTimezone(timeZone);
-  return Math.floor(daysBetween(anchorIso, today) / 7);
+  const days = daysBetween(anchorIso, today);
+  return Math.max(1, Math.floor(days / 7) + 1);
 }
 
 export function browserTimezone(): string {

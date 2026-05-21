@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { requireOnboardedProfile } from "@/lib/auth/gates";
 import { appointmentFormSchema } from "@/lib/schemas/appointment";
@@ -100,15 +99,20 @@ export async function updateAppointment(
   return { ok: true };
 }
 
-export async function deleteAppointment(id: string): Promise<void> {
-  if (typeof id !== "string" || !id) return;
+export async function deleteAppointment(
+  id: string,
+): Promise<AppointmentResult> {
+  if (typeof id !== "string" || !id) {
+    return { ok: false, error: "Missing appointment id" };
+  }
   const { supabase, user } = await requireOnboardedProfile();
-  await supabase
+  const { error } = await supabase
     .from("appointments")
     .delete()
     .eq("user_id", user.id)
     .eq("id", id);
+  if (error) return { ok: false, error: error.message };
   revalidatePath("/appointments");
   revalidatePath("/dashboard");
-  redirect("/appointments");
+  return { ok: true };
 }

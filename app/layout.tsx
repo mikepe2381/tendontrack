@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "sonner";
 
 import { Header } from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -33,6 +34,7 @@ export default function RootLayout({
             <Header />
             <main className="flex flex-1 flex-col">{children}</main>
           </div>
+          <Toaster richColors closeButton position="top-center" />
         </ThemeProvider>
       </body>
     </html>

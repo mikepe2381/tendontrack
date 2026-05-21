@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { requireOnboardedProfile } from "@/lib/auth/gates";
 import { noteFormSchema, parseTagsInput } from "@/lib/schemas/note";
@@ -78,15 +77,18 @@ export async function updateNote(
   return { ok: true };
 }
 
-export async function deleteNote(id: string): Promise<void> {
-  if (typeof id !== "string" || !id) return;
+export async function deleteNote(id: string): Promise<NoteResult> {
+  if (typeof id !== "string" || !id) {
+    return { ok: false, error: "Missing note id" };
+  }
   const { supabase, user } = await requireOnboardedProfile();
-  await supabase
+  const { error } = await supabase
     .from("notes")
     .delete()
     .eq("user_id", user.id)
     .eq("id", id);
+  if (error) return { ok: false, error: error.message };
   revalidatePath("/notes");
   revalidatePath("/dashboard");
-  redirect("/notes");
+  return { ok: true };
 }

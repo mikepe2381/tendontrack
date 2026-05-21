@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import {
   createAppointment,
@@ -78,8 +79,12 @@ export function AppointmentForm({ mode, appointmentId, defaultValues }: Props) {
           : await updateAppointment(appointmentId ?? "", values);
       if (!result.ok) {
         setServerError(result.error);
+        toast.error(result.error);
         return;
       }
+      toast.success(
+        mode === "create" ? "Appointment created" : "Appointment saved",
+      );
       const target =
         mode === "create" && result.id
           ? `/appointments/${result.id}`
@@ -97,8 +102,14 @@ export function AppointmentForm({ mode, appointmentId, defaultValues }: Props) {
       return;
     }
     startDeleteTransition(async () => {
-      // Server action redirects on success.
-      await deleteAppointment(appointmentId);
+      const result = await deleteAppointment(appointmentId);
+      if (!result.ok) {
+        setServerError(result.error);
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Appointment deleted");
+      router.push("/appointments");
     });
   }
 
