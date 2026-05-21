@@ -34,6 +34,12 @@ export async function Header() {
                 <Link href="/timeline">Timeline</Link>
               </Button>
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <Link href="/appointments">Appointments</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <Link href="/notes">Notes</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
                 <Link href="/reference">Reference</Link>
               </Button>
               <Button asChild variant="ghost" size="sm">
